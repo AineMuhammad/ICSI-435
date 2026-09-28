@@ -1,4 +1,4 @@
-(While Workspace is open)
+(While Workspace is open, open a new terminal)
 # Create the environment
 python -m venv rl-env
 

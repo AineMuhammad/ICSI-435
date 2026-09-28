@@ -13,7 +13,7 @@ env = make_atari_env("ALE/Pacman-v5", n_envs=1, env_kwargs={"render_mode": "huma
 env = VecFrameStack(env, n_stack=4)
 
 # 3. Load the CNN model
-model = PPO.load("models/pong_ppo_cnn_v2")
+model = PPO.load("models/pacman_ppo_cnn")
 print("CNN Model loaded! Watch it play...")
 
 obs = env.reset()

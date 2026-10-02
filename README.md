@@ -97,3 +97,28 @@ To watch a trained agent locally (needs a screen, so not on Colab):
 ```
 python src/play.py --algo ppo --model runs/ppo_seed0/final_model.zip
 ```
+
+## Evaluate an agent
+
+`src/evaluate.py` plays full games (all lives) and reports the real Pac-Man score as
+mean ± std, median, min and max. Results are saved as JSON next to the model
+(`final_model_eval.json`) or wherever `--save` points.
+
+```
+# Baseline: random button presses (the bar a trained agent has to beat)
+!python src/evaluate.py --random --save /content/drive/MyDrive/ICSI-435/runs/random_eval.json
+
+# A trained model
+!python src/evaluate.py --algo ppo --model /content/drive/MyDrive/ICSI-435/runs/ppo_seed0/final_model.zip
+```
+
+| Option | Default | Meaning |
+|---|---|---|
+| `--episodes` | 100 | Full games to play |
+| `--seed` | 1000 | Kept apart from training seeds so the games are unseen |
+| `--stochastic` | off | Sample moves instead of always picking the best one |
+| `--n-envs` | 8 | Games played in parallel (only affects speed) |
+
+By default the agent always picks its best move. A barely trained agent can get stuck doing the
+same move every step (e.g. always LEFT into a wall); `--stochastic` shows how it scores when it
+samples moves the way it does during training.

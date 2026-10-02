@@ -38,11 +38,11 @@ def load_run(run_dir):
 
 
 def steps_label(x, _pos=None):
-    if x >= 1e6:
-        return f"{x / 1e6:g}M"
+    if x >= 999_500:  # anything that would round to "1000k" reads as 1M
+        return f"{x / 1e6:.3g}M"
     if x >= 1e3:
-        return f"{x / 1e3:g}k"
-    return f"{x:g}"
+        return f"{x / 1e3:.3g}k"
+    return f"{x:.0f}"
 
 
 def main():
@@ -76,7 +76,7 @@ def main():
         smooth = df["r"].rolling(args.window, min_periods=min(10, len(df))).mean()
         label = name.replace("_seed", " · seed ").upper().replace("SEED", "seed")
 
-        ax.scatter(df["step"], df["r"], s=4, color=color, alpha=0.15, linewidths=0, zorder=1)
+        ax.scatter(df["step"], df["r"], s=6, color=color, alpha=0.3, linewidths=0, zorder=1)
         ax.plot(df["step"], smooth, color=color, linewidth=2, label=label, zorder=3)
         last = smooth.dropna()
         if not last.empty:

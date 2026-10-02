@@ -135,7 +135,8 @@ prints a summary table (steps, hours, games, recent score) for each run.
 ```
 
 The image is saved as `learning_curves.png` beside the runs (or at `--save`). Steps are
-estimated from game frames (4 frames per step), so they can read slightly above the true count.
+estimated from finished games (4 frames per step), so they read slightly below the true count;
+games still in progress when training stopped are not counted.
 
 ### The DQN vs. PPO comparison (slide 6)
 

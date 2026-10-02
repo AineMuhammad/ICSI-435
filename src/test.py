@@ -7,7 +7,7 @@ env = gym.make("CartPole-v1")
 # 2. Use MlpPolicy for simple numerical data (no vision wrappers needed)
 model = PPO("MlpPolicy", env, verbose=1, tensorboard_log="logs/")
 
-# 3. Train for 50,000 frames
+# 3. Train for 10,000 timesteps
 print("Starting CartPole training...")
 model.learn(total_timesteps=10000)
 

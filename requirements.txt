@@ -1,0 +1,6 @@
+# RL algorithms (PPO, DQN) + extras (TensorBoard, Atari wrappers, OpenCV)
+stable-baselines3[extra]>=2.4
+# Standard RL environment API
+gymnasium>=1.0
+# Atari emulator; 0.9+ ships the game ROMs, so no separate ROM download is needed
+ale-py>=0.9

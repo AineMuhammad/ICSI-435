@@ -89,8 +89,9 @@ def main():
     if random_eval.exists():
         baseline = json.loads(random_eval.read_text())["mean"]
         ax.axhline(baseline, color=MUTED, linewidth=1.5, linestyle=(0, (4, 3)), zorder=2, label="Random agent")
-        ax.annotate(f"random {baseline:.1f}", (0, baseline), xytext=(4, 4), textcoords="offset points",
-                    fontsize=9, color=INK_2, va="bottom")
+        # Label at the right edge, under the line, clear of where the curves start
+        ax.annotate(f"random {baseline:.1f}", (1, baseline), xycoords=ax.get_yaxis_transform(), xytext=(0, -4),
+                    textcoords="offset points", fontsize=9, color=INK_2, ha="right", va="top")
 
     ax.set_title(f"Pac-Man score while training (each line averages the last {args.window} games)",
                  loc="left", fontsize=12, color=INK, pad=12)

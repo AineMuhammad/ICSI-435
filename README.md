@@ -12,7 +12,7 @@ Run every command from the repository root, so `models/` and `logs/` end up ther
 3. Run this in the first cell (the `!` and `%` run shell commands from a notebook):
 
    ```
-   !git clone -b dev https://github.com/EricMaizner/ICSI-435.git
+   !git clone -b dev https://github.com/AineMuhammad/ICSI-435.git
    %cd ICSI-435
    !pip install -r requirements.txt
    ```

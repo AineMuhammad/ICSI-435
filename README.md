@@ -122,3 +122,33 @@ mean ± std, median, min and max. Results are saved as JSON next to the model
 By default the agent always picks its best move. A barely trained agent can get stuck doing the
 same move every step (e.g. always LEFT into a wall); `--stochastic` shows how it scores when it
 samples moves the way it does during training.
+
+## Compare algorithms (learning curves)
+
+`src/plot.py` reads each run's `monitor/` logs and draws score per game against training steps,
+one line per run (PPO blue, DQN orange), averaged over the last `--window` games (default 100),
+with the random baseline as a dashed line if `random_eval.json` sits beside the runs. It also
+prints a summary table (steps, hours, games, recent score) for each run.
+
+```
+!python src/plot.py $RUNS/ppo_seed0 $RUNS/dqn_seed0
+```
+
+The image is saved as `learning_curves.png` beside the runs (or at `--save`). Steps are
+estimated from game frames (4 frames per step), so they can read slightly above the true count.
+
+### The DQN vs. PPO comparison (slide 6)
+
+Train both for the same budget, then evaluate and plot (about 35 min for PPO and 65 min for DQN
+on a Colab T4; keep the tab open):
+
+```
+!python src/train.py --algo ppo --timesteps 1000000 --out $RUNS
+!python src/train.py --algo dqn --timesteps 1000000 --out $RUNS
+!python src/evaluate.py --algo ppo --model $RUNS/ppo_seed0/final_model.zip
+!python src/evaluate.py --algo dqn --model $RUNS/dqn_seed0/final_model.zip
+!python src/plot.py $RUNS/ppo_seed0 $RUNS/dqn_seed0
+```
+
+`$RUNS` is the Drive folder set in the Colab setup (`RUNS = "/content/drive/MyDrive/ICSI-435/runs"`).
+If either run already exists from a test, delete its folder first or pass a new `--seed`.

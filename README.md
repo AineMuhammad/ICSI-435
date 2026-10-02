@@ -89,6 +89,8 @@ drive.mount('/content/drive')
 
 If the session drops, reconnect, re-run the setup cell and the Drive cell, then add `--resume`
 to the same command. DQN's replay buffer is not saved, so after resuming it refills from scratch.
+Keep `--timesteps` the same when resuming: PPO's learning rate and DQN's exploration decay over
+`--timesteps`, so raising it mid-run restarts part of that decay.
 
 To watch a trained agent locally (needs a screen, so not on Colab):
 

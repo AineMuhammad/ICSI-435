@@ -1,25 +1,26 @@
-import gymnasium as gym
-import ale_py
-from stable_baselines3 import PPO
-from stable_baselines3.common.env_util import make_atari_env
-from stable_baselines3.common.vec_env import VecFrameStack
+import argparse
 
-gym.register_envs(ale_py)
+from stable_baselines3 import DQN, PPO
 
-# 1. Use the Atari wrappers to match training, but set render_mode to human
-env = make_atari_env("ALE/Pacman-v5", n_envs=1, env_kwargs={"render_mode": "human"})
+from atari import make_env
 
-# 2. Stack 4 frames
-env = VecFrameStack(env, n_stack=4)
+parser = argparse.ArgumentParser(description="Watch a trained agent play (needs a screen, so not on Colab)")
+parser.add_argument("--algo", choices=["ppo", "dqn"], default="ppo")
+parser.add_argument("--model", default="runs/ppo_seed0/final_model.zip", help="path to a saved model .zip")
+parser.add_argument("--steps", type=int, default=5000, help="how many steps to watch")
+args = parser.parse_args()
 
-# 3. Load the CNN model
-model = PPO.load("models/pacman_ppo_cnn")
+# 1. Same game setup as training, but with a window to watch it in
+env = make_env(n_envs=1, render_mode="human")
+
+# 2. Load the CNN model
+model = (PPO if args.algo == "ppo" else DQN).load(args.model)
 print("CNN Model loaded! Watch it play...")
 
 obs = env.reset()
 
 # Let it play for a few minutes
-for _ in range(5000):
+for _ in range(args.steps):
     action, _states = model.predict(obs, deterministic=True)
     obs, rewards, dones, infos = env.step(action)
 

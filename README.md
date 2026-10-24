@@ -75,6 +75,8 @@ and some perfect 500s.
 | `--n-envs` | 8 (PPO), 1 (DQN) | Games played in parallel |
 | `--out` | `runs` | Where run folders are created |
 | `--resume` | off | Continue from the latest checkpoint up to `--timesteps` |
+| `--max-hours` | none | Stop cleanly after this many hours, saving a checkpoint to `--resume` from |
+| `--checkpoint-freq` | 100,000 | Save a checkpoint every N steps |
 
 On Colab, mount Google Drive first so runs survive disconnects:
 

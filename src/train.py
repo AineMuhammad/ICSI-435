@@ -1,9 +1,10 @@
 import argparse
 import re
+import time
 from pathlib import Path
 
 from stable_baselines3 import DQN, PPO
-from stable_baselines3.common.callbacks import CheckpointCallback
+from stable_baselines3.common.callbacks import BaseCallback, CheckpointCallback
 
 from atari import ENV_ID, make_env
 
@@ -39,6 +40,20 @@ def build_model(algo, env, timesteps, tb_dir, seed):
     )
 
 
+class StopAfterHours(BaseCallback):
+    """Ends training cleanly after a time budget, before a cloud notebook's hard limit kills it."""
+
+    def __init__(self, hours):
+        super().__init__()
+        self.seconds = hours * 3600
+
+    def _on_training_start(self):
+        self.start = time.time()
+
+    def _on_step(self):
+        return time.time() - self.start < self.seconds
+
+
 def latest_checkpoint(ckpt_dir):
     # Checkpoints are named model_<steps>_steps.zip; pick the highest step count
     ckpts = list(ckpt_dir.glob("model_*_steps.zip"))
@@ -56,6 +71,7 @@ def main():
     parser.add_argument("--out", default="runs", help="folder for models and logs (e.g. a Google Drive path)")
     parser.add_argument("--checkpoint-freq", type=int, default=100_000, help="save a checkpoint every N steps")
     parser.add_argument("--resume", action="store_true", help="continue from the latest checkpoint")
+    parser.add_argument("--max-hours", type=float, help="stop cleanly after this many hours (rerun with --resume to continue)")
     args = parser.parse_args()
 
     n_envs = args.n_envs or (8 if args.algo == "ppo" else 1)
@@ -86,11 +102,21 @@ def main():
     # save_freq counts calls to the env, and each call advances every parallel game by one step
     checkpoint = CheckpointCallback(save_freq=max(args.checkpoint_freq // n_envs, 1), save_path=str(ckpt_dir), name_prefix="model")
 
+    callbacks = [checkpoint] + ([StopAfterHours(args.max_hours)] if args.max_hours else [])
+
     print(f"Training {args.algo.upper()} on {ENV_ID} for {remaining:,} steps with {n_envs} parallel game(s)...")
-    model.learn(total_timesteps=remaining, callback=checkpoint, tb_log_name=args.algo, reset_num_timesteps=not args.resume)
+    model.learn(total_timesteps=remaining, callback=callbacks, tb_log_name=args.algo, reset_num_timesteps=not args.resume)
+    env.close()
+
+    if model.num_timesteps < args.timesteps:
+        # Stopped by --max-hours: save where we are so --resume picks up from here
+        ckpt_path = ckpt_dir / f"model_{model.num_timesteps}_steps"
+        model.save(ckpt_path)
+        print(f"Time limit reached at {model.num_timesteps:,} of {args.timesteps:,} steps. "
+              f"Checkpoint saved to {ckpt_path}.zip; rerun with --resume to continue.")
+        return
 
     model.save(run_dir / "final_model")
-    env.close()
     print(f"Training complete. Model saved to {run_dir / 'final_model.zip'}")
 
 

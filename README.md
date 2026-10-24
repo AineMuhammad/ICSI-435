@@ -64,8 +64,7 @@ and some perfect 500s.
 |---|---|
 | `checkpoints/model_<steps>_steps.zip` | Saved every `--checkpoint-freq` steps (default 100,000) |
 | `final_model.zip` | Model at the end of training |
-| `monitor/*.monitor.csv` | Real game score and length of every episode |
-| `tb/` | TensorBoard logs |
+| `games.csv` | Real score of every finished game and the training step it ended at, written at each checkpoint |
 
 | Option | Default | Meaning |
 |---|---|---|
@@ -91,6 +90,7 @@ drive.mount('/content/drive')
 
 If the session drops, reconnect, re-run the setup cell and the Drive cell, then add `--resume`
 to the same command. DQN's replay buffer is not saved, so after resuming it refills from scratch.
+If Drive seems stuck after a reconnect, remount it with `drive.mount('/content/drive', force_remount=True)`.
 Keep `--timesteps` the same when resuming: PPO's learning rate and DQN's exploration decay over
 `--timesteps`, so raising it mid-run restarts part of that decay.
 
@@ -127,7 +127,7 @@ samples moves the way it does during training.
 
 ## Compare algorithms (learning curves)
 
-`src/plot.py` reads each run's `monitor/` logs and draws score per game against training steps,
+`src/plot.py` reads each run's `games.csv` and draws score per game against training steps,
 one line per run (PPO blue, DQN orange), averaged over the last `--window` games (default 100),
 with the random baseline as a dashed line if `random_eval.json` sits beside the runs. It also
 prints a summary table (steps, hours, games, recent score) for each run.
@@ -136,9 +136,9 @@ prints a summary table (steps, hours, games, recent score) for each run.
 !python src/plot.py $RUNS/ppo_seed0 $RUNS/dqn_seed0
 ```
 
-The image is saved as `learning_curves.png` beside the runs (or at `--save`). Steps are
-estimated from finished games (4 frames per step), so they read slightly below the true count;
-games still in progress when training stopped are not counted.
+The image is saved as `learning_curves.png` beside the runs (or at `--save`). Runs from before
+`games.csv` existed logged games in `monitor/*.monitor.csv`, which has no step count; for those
+games, steps are estimated from game length (4 frames per step) and read slightly low.
 
 ### The DQN vs. PPO comparison (slide 6)
 

@@ -7,6 +7,7 @@ from stable_baselines3 import DQN, PPO
 from stable_baselines3.common.callbacks import BaseCallback, CheckpointCallback
 
 from atari import ENV_ID, make_env
+from gamelog import GameLog
 
 ALGOS = {"ppo": PPO, "dqn": DQN}
 
@@ -16,7 +17,7 @@ def linear(start):
     return lambda progress_remaining: progress_remaining * start
 
 
-def build_model(algo, env, timesteps, tb_dir, seed):
+def build_model(algo, env, timesteps, seed):
     # Hyperparameters follow the RL Baselines3 Zoo settings tuned for Atari games
     if algo == "ppo":
         return PPO(
@@ -24,7 +25,7 @@ def build_model(algo, env, timesteps, tb_dir, seed):
             n_steps=128, n_epochs=4, batch_size=256,
             learning_rate=linear(2.5e-4), clip_range=linear(0.1),
             vf_coef=0.5, ent_coef=0.01,
-            tensorboard_log=tb_dir, seed=seed, verbose=1,
+            seed=seed, verbose=1,
         )
     return DQN(
         "CnnPolicy", env,
@@ -36,7 +37,7 @@ def build_model(algo, env, timesteps, tb_dir, seed):
         learning_starts=min(100_000, timesteps // 10),
         train_freq=4, gradient_steps=1, target_update_interval=1000,
         exploration_fraction=0.1, exploration_final_eps=0.01,
-        tensorboard_log=tb_dir, seed=seed, verbose=1,
+        seed=seed, verbose=1,
     )
 
 
@@ -77,7 +78,6 @@ def main():
     n_envs = args.n_envs or (8 if args.algo == "ppo" else 1)
     run_dir = Path(args.out) / f"{args.algo}_seed{args.seed}"
     ckpt_dir = run_dir / "checkpoints"
-    tb_dir = str(run_dir / "tb")
 
     ckpt = latest_checkpoint(ckpt_dir)
     if ckpt and not args.resume:
@@ -85,14 +85,18 @@ def main():
     if args.resume and not ckpt:
         parser.error(f"--resume given but no checkpoints found in {ckpt_dir}")
 
-    env = make_env(n_envs=n_envs, seed=args.seed, monitor_dir=str(run_dir / "monitor"), append_monitor=args.resume)
+    # Games are logged to games.csv by GameLog, not to monitor files: Monitor keeps its file open
+    # on Google Drive all run, and Drive can lose what was written if Colab disconnects
+    env = make_env(n_envs=n_envs, seed=args.seed)
 
     if args.resume:
         # DQN's replay buffer is not saved (it is several GB), so it refills from scratch after resuming
-        model = ALGOS[args.algo].load(ckpt, env=env, tensorboard_log=tb_dir)
+        # tensorboard_log=None: runs from older versions saved a TensorBoard folder on Drive,
+        # and opening log files there can hang
+        model = ALGOS[args.algo].load(ckpt, env=env, tensorboard_log=None)
         print(f"Resuming from {ckpt} at {model.num_timesteps:,} steps")
     else:
-        model = build_model(args.algo, env, args.timesteps, tb_dir, args.seed)
+        model = build_model(args.algo, env, args.timesteps, args.seed)
 
     remaining = args.timesteps - model.num_timesteps
     if remaining <= 0:
@@ -100,12 +104,15 @@ def main():
         return
 
     # save_freq counts calls to the env, and each call advances every parallel game by one step
-    checkpoint = CheckpointCallback(save_freq=max(args.checkpoint_freq // n_envs, 1), save_path=str(ckpt_dir), name_prefix="model")
+    save_freq = max(args.checkpoint_freq // n_envs, 1)
+    checkpoint = CheckpointCallback(save_freq=save_freq, save_path=str(ckpt_dir), name_prefix="model")
+    games = GameLog(run_dir / "games.csv", save_freq, start_step=model.num_timesteps)
 
-    callbacks = [checkpoint] + ([StopAfterHours(args.max_hours)] if args.max_hours else [])
+    callbacks = [checkpoint, games] + ([StopAfterHours(args.max_hours)] if args.max_hours else [])
 
-    print(f"Training {args.algo.upper()} on {ENV_ID} for {remaining:,} steps with {n_envs} parallel game(s)...")
-    model.learn(total_timesteps=remaining, callback=callbacks, tb_log_name=args.algo, reset_num_timesteps=not args.resume)
+    print(f"Training {args.algo.upper()} on {ENV_ID} for {remaining:,} steps with {n_envs} parallel game(s) "
+          f"on {model.device}...")
+    model.learn(total_timesteps=remaining, callback=callbacks, reset_num_timesteps=not args.resume)
     env.close()
 
     if model.num_timesteps < args.timesteps:
